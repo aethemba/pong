@@ -1,0 +1,172 @@
+<html>
+<head>
+  <title>Pong</title>
+  <style>
+    canvas {
+	  	display: block;
+	  	position: absolute;
+	  	border: 1px solid #fff;
+	  	margin: auto;
+	  	top: 0;
+	  	bottom: 0;
+	  	right: 0;
+	  	left: 0
+	}
+  </style>
+</head>
+<body>
+
+<script>
+
+var COLS = ROWS = 26;
+var EMPTY = 0, BALL=1, PLAYER1=2, PLAYER2=3; // Values to represent the element on the grid
+var LEFT = 0, UP=1, RIGHT=2, DOWN=3;
+
+var KEY_UP=38, KEY_DOWN=40; 
+
+
+var grid = {
+	width: null,
+	height: null,
+	_grid:[],
+
+
+	init: function(d, c, r) {
+		this.width = c,
+		this.height = r,
+
+		this._grid = [];
+
+		for (var x=0; x < this.width; x++) {
+			this._grid.push([]);
+			for (var y=0; y < this.height; y++) {
+				this._grid[x].push(d);
+			}
+		}
+	},
+
+	set: function(val, x, y) {
+		this._grid[x][y] = val;
+	},
+
+	get: function(x, y) {
+		return this._grid[x][y];
+	}
+
+};
+
+var playerOne = {
+	size: null,
+	y: null,
+
+	init: function(y, size) {
+		this.size = size;
+		this.y = y;
+	}
+}; 
+
+var playerTwo = {
+	size: null,
+	y: null,
+
+	init: function(y, size) {
+		this.size = size;
+		this.y = y;
+	}
+} 
+
+function main() {
+  canvas = document.createElement('canvas');
+  canvas.width = COLS * 25;
+  canvas.height = ROWS * 25;
+
+  ctx = canvas.getContext('2d');
+  ctx.font = "12px Helvetica";
+
+  frames = 0;
+  keystate = {};
+
+  document.body.appendChild(canvas);
+
+  document.addEventListener("keyup", function(evt) {
+  	keystate[evt.keyCode] = true;
+  });
+
+  document.addEventListener("keydown", function(evt){
+  	delete keystate[evt.keyCode];
+  });
+
+  init();
+  loop();
+}
+
+function init() {
+	// Initialize the game
+
+	grid.init(EMPTY, COLS, ROWS);
+
+	playerOne.init(ROWS/2 + 5, 5);
+	playerTwo.init(ROWS/2 - 3 , 5);
+
+	for (var i=0; i < playerOne.size; i++) {
+		grid.set(PLAYER1, COLS-2, playerOne.y + i);
+	}
+
+	for (var i=0; i < playerTwo.size; i++) {
+		grid.set(PLAYER2, 1, playerTwo.y + i);
+	}
+
+	console.log(grid);
+
+}
+
+function loop() {
+  update();
+  draw();
+
+  window.requestAnimationFrame(loop, canvas);
+
+}
+
+
+function update() {
+	frames++;
+
+	if (keystate[KEY_UP]) playerOne.y += 1;
+	if (keystate[KEY_DOWN]) playerOne.y -= 1 ;
+
+}
+
+
+function draw() {
+	var tw = canvas.width / grid.width; //Target width
+	var th = canvas.height / grid.height; // Target height
+
+	for (var x=0; x < grid.width; x++) {
+		for (var y=0; y < grid.height; y++) {
+			switch (grid.get(x,y)) { //Color in the block s of the game. 
+				case EMPTY:
+					ctx.fillStyle = '#000';
+					break;
+				case PLAYER1:
+					ctx.fillStyle = '#fff';
+					break;
+				case PLAYER2:
+					ctx.fillStyle = '#fff';
+					break;
+				case BALL:
+					ctx.fillStyle = '#f01';
+					break;
+			}
+
+			ctx.fillRect(x*tw, y*th, tw, th); // x, y, width, height
+		}
+	}
+
+	ctx.fillStyle = "#000";
+}
+
+main();
+</script>
+</body>
+</html>
