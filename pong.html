@@ -88,11 +88,11 @@ function main() {
 
   document.body.appendChild(canvas);
 
-  document.addEventListener("keyup", function(evt) {
+  document.addEventListener("keydown", function(evt) {
   	keystate[evt.keyCode] = true;
   });
 
-  document.addEventListener("keydown", function(evt){
+  document.addEventListener("keyup", function(evt){
   	delete keystate[evt.keyCode];
   });
 
@@ -115,9 +115,6 @@ function init() {
 	for (var i=0; i < playerTwo.size; i++) {
 		grid.set(PLAYER2, 1, playerTwo.y + i);
 	}
-
-	console.log(grid);
-
 }
 
 function loop() {
@@ -132,9 +129,22 @@ function loop() {
 function update() {
 	frames++;
 
-	if (keystate[KEY_UP]) playerOne.y += 1;
-	if (keystate[KEY_DOWN]) playerOne.y -= 1 ;
+	if (keystate[KEY_UP]) {
+		if (playerOne.y > 0 && playerOne.y < grid.height || playerOne.y == grid.height) {
+			playerOne.y -= 1;
+			grid.set(PLAYER1, COLS-2, playerOne.y);
+			grid.set(EMPTY, COLS-2, playerOne.y+playerOne.size);
+		}
+	}
+	
+	if (keystate[KEY_DOWN]){
+		if (playerOne.y > 0 && playerOne.y < grid.height || playerOne.y == 0) {
+			playerOne.y += 1;
+			grid.set(PLAYER1, COLS-2, playerOne.y)
+			grid.set(EMPTY, COLS-2, playerOne.y-playerOne.size);
+		}
 
+	}
 }
 
 
