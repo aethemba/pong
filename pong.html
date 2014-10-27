@@ -48,7 +48,7 @@ var ai = {
 
 	update: function() {
 		var desty = ball.y - (this.height - ball.side) * 0.5;
-		this.y = desty;
+		this.y += (desty - this.y) * 0.1;
 	},
 
 	draw: function() {
@@ -61,7 +61,19 @@ var ball = {
 	y: null,
 	side: 20,
 	velocity: null,
-	speed: 5,
+	speed: 8,
+ 
+	serve: function(side) {
+		var r = Math.random();
+		this.x = (side === 1 ? player.x : ai.x - this.side);
+		this.y = (HEIGHT - this.side) * r;
+
+		var phi = 0.1 * PI * (1 - 2*r);
+		this.velocity = {
+			x: side * this.speed *Math.cos(phi),
+			y: this.speed * Math.sin(phi)
+		}
+	},	
 
 	update :function() {
 		this.x += this.velocity.x;
@@ -87,8 +99,16 @@ var ball = {
 			var n = (this.y + this.side - paddle.y) / (paddle.height + this.side);
 			// phi is the reflection angle - Gives a value between -1 and 1 
 			var phi  = 0.25 * PI * (2*n - 1); // PI / 4 = 45 degrees
-			this.velocity.x = (paddle===player ? 1: -1) * this.speed * Math.cos(phi);
-			this.velocity.y = this.speed * Math.sin(phi); 
+
+			var smash = Math.abs(phi) > 0.2*PI ? 1.5 : 1;
+
+			this.velocity.x = smash*(paddle===player ? 1: -1) * this.speed * Math.cos(phi);
+			this.velocity.y = smash*this.speed * Math.sin(phi); 
+		}
+
+
+		if (0 >  this.x + this.side || this.x > WIDTH) {
+			this.serve(paddle===player ? 1: -1);
 		}
 
 	},
@@ -138,13 +158,7 @@ function init() {
 	ai.x = WIDTH - (player.width + ai.width);
 	ai.y = (HEIGHT - player.height) / 2;
 
-	ball.x = (WIDTH - ball.side) / 2;
-	ball.y = (HEIGHT - ball.side) / 2;
-
-	ball.velocity = {
-		x: ball.speed,
-		y: 0 
-	}
+	ball.serve(1);
 
 }
 
