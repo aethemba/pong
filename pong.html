@@ -18,72 +18,94 @@
 
 <script>
 
-var COLS = ROWS = 26;
-var EMPTY = 0, BALL=1, PLAYER1=2, PLAYER2=3; // Values to represent the element on the grid
-var LEFT = 0, UP=1, RIGHT=2, DOWN=3;
-
+var WIDTH = 700, HEIGHT = 600, PI = Math.PI;
+var canvas, ctx, keystate;
 var KEY_UP=38, KEY_DOWN=40; 
+var ball, player, ai;
 
 
-var grid = {
-	width: null,
-	height: null,
-	_grid:[],
+var player = {
+	x: null,
+	y: null,
+	width: 20,
+	height: 100,
 
+	update: function() {
+		if (keystate[KEY_UP]) this.y -= 7;
+		if (keystate[KEY_DOWN]) this.y += 7;
+	},
 
-	init: function(d, c, r) {
-		this.width = c,
-		this.height = r,
+	draw: function() {
+		ctx.fillRect(this.x, this.y, this.width, this.height);
+	}	
+}
 
-		this._grid = [];
+var ai = {
+	x: null,
+	y: null,
+	width: 20,
+	height: 100,
 
-		for (var x=0; x < this.width; x++) {
-			this._grid.push([]);
-			for (var y=0; y < this.height; y++) {
-				this._grid[x].push(d);
-			}
+	update: function() {
+		var desty = ball.y - (this.height - ball.side) * 0.5;
+		this.y = desty;
+	},
+
+	draw: function() {
+		ctx.fillRect(this.x, this.y, this.width, this.height);
+	}	
+}
+
+var ball = {
+	x: null,
+	y: null,
+	side: 20,
+	velocity: null,
+	speed: 5,
+
+	update :function() {
+		this.x += this.velocity.x;
+		this.y += this.velocity.y; 
+
+		if (this.y < 0 || this.y + this.side > HEIGHT) {
+			var offset = this.velocity.y < 0 ? 0 - this.y : HEIGHT - (this.y+this.side); 
+			this.y += 2*offset; 
+			this.velocity.y *= -1;
 		}
+
+		//Axis Aligned Bounding Boxes - Returns true if two boxes intersect, otherwise returns false;
+		var AABBIntersect = function(ax, ay, aw, ah, bx, by, bw, bh) {
+ 			return (ax < bx+bw) && (ay < by+bh) && (bx < ax+aw) && (by < ay+ah);
+		};
+
+		var paddle = this.velocity.x < 0 ? player : ai;
+
+		if (AABBIntersect(this.x, this.y, this.side, this.side, paddle.x, paddle.y, paddle.width, paddle.height) ) {
+			this.x = paddle === player ? player.x + player.width : ai.x - this.side;
+
+			// n is the normalized height offset, gives value between 0 and 1 on where the ball hits
+			var n = (this.y + this.side - paddle.y) / (paddle.height + this.side);
+			// phi is the reflection angle - Gives a value between -1 and 1 
+			var phi  = 0.25 * PI * (2*n - 1); // PI / 4 = 45 degrees
+			this.velocity.x = (paddle===player ? 1: -1) * this.speed * Math.cos(phi);
+			this.velocity.y = this.speed * Math.sin(phi); 
+		}
+
 	},
 
-	set: function(val, x, y) {
-		this._grid[x][y] = val;
-	},
-
-	get: function(x, y) {
-		return this._grid[x][y];
+	draw: function() {
+		ctx.fillRect(this.x, this.y, this.side, this.side);
 	}
-
-};
-
-var playerOne = {
-	size: null,
-	y: null,
-
-	init: function(y, size) {
-		this.size = size;
-		this.y = y;
-	}
-}; 
-
-var playerTwo = {
-	size: null,
-	y: null,
-
-	init: function(y, size) {
-		this.size = size;
-		this.y = y;
-	}
-} 
+}
 
 function main() {
   canvas = document.createElement('canvas');
-  canvas.width = COLS * 25;
-  canvas.height = ROWS * 25;
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
 
   ctx = canvas.getContext('2d');
-  ctx.font = "12px Helvetica";
+  //ctx.font = "12px Helvetica";
 
-  frames = 0;
   keystate = {};
 
   document.body.appendChild(canvas);
@@ -97,83 +119,62 @@ function main() {
   });
 
   init();
-  loop();
+
+  var loop = function() {
+  	update();
+  	draw();
+
+  	window.requestAnimationFrame(loop, canvas);
+  };
+
+  window.requestAnimationFrame(loop, canvas);
 }
 
 function init() {
 	// Initialize the game
+	player.x = player.width;
+	player.y = (HEIGHT - player.height) / 2;
 
-	grid.init(EMPTY, COLS, ROWS);
+	ai.x = WIDTH - (player.width + ai.width);
+	ai.y = (HEIGHT - player.height) / 2;
 
-	playerOne.init(ROWS/2 + 5, 5);
-	playerTwo.init(ROWS/2 - 3 , 5);
+	ball.x = (WIDTH - ball.side) / 2;
+	ball.y = (HEIGHT - ball.side) / 2;
 
-	for (var i=0; i < playerOne.size; i++) {
-		grid.set(PLAYER1, COLS-2, playerOne.y + i);
+	ball.velocity = {
+		x: ball.speed,
+		y: 0 
 	}
-
-	for (var i=0; i < playerTwo.size; i++) {
-		grid.set(PLAYER2, 1, playerTwo.y + i);
-	}
-}
-
-function loop() {
-  update();
-  draw();
-
-  window.requestAnimationFrame(loop, canvas);
 
 }
 
 
 function update() {
-	frames++;
-
-	if (keystate[KEY_UP]) {
-		if (playerOne.y > 0 && playerOne.y < grid.height || playerOne.y == grid.height) {
-			playerOne.y -= 1;
-			grid.set(PLAYER1, COLS-2, playerOne.y);
-			grid.set(EMPTY, COLS-2, playerOne.y+playerOne.size);
-		}
-	}
-	
-	if (keystate[KEY_DOWN]){
-		if (playerOne.y > 0 && playerOne.y < grid.height || playerOne.y == 0) {
-			playerOne.y += 1;
-			grid.set(PLAYER1, COLS-2, playerOne.y)
-			grid.set(EMPTY, COLS-2, playerOne.y-playerOne.size);
-		}
-
-	}
+	ball.update();
+	player.update();
+	ai.update();
 }
 
 
 function draw() {
-	var tw = canvas.width / grid.width; //Target width
-	var th = canvas.height / grid.height; // Target height
+	ctx.fillRect(0, 0, WIDTH, HEIGHT);
+	ctx.save();
+	ctx.fillStyle = '#fff';
 
-	for (var x=0; x < grid.width; x++) {
-		for (var y=0; y < grid.height; y++) {
-			switch (grid.get(x,y)) { //Color in the block s of the game. 
-				case EMPTY:
-					ctx.fillStyle = '#000';
-					break;
-				case PLAYER1:
-					ctx.fillStyle = '#fff';
-					break;
-				case PLAYER2:
-					ctx.fillStyle = '#fff';
-					break;
-				case BALL:
-					ctx.fillStyle = '#f01';
-					break;
-			}
+	ball.draw();
+	player.draw();
+	ai.draw();
 
-			ctx.fillRect(x*tw, y*th, tw, th); // x, y, width, height
-		}
+	var w = 4;
+	var x = (WIDTH - w) * 0.5;
+	var y = 0;
+	var step = HEIGHT / 15;
+	while (y < HEIGHT) {
+		ctx.fillRect(x, y+step * 0.25, w, step * 0.5);
+		y += step;
 	}
 
-	ctx.fillStyle = "#000";
+	ctx.restore();
 }
 
 main();
